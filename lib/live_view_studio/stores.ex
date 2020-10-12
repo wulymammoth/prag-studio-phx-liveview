@@ -1,7 +1,9 @@
 defmodule LiveViewStudio.Stores do
   def search_by_zip(zip) do
-    list_stores()
-    |> Enum.filter(&(&1.zip == zip))
+    # NOTE: fake latency
+    :timer.sleep(2000)
+
+    Enum.filter(list_stores(), &(&1.zip == zip))
   end
 
   def search_by_city(city) do
