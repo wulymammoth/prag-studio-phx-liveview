@@ -3,6 +3,14 @@ defmodule LiveViewStudioWeb.ServersLive do
 
   alias LiveViewStudio.Servers
 
+  @doc """
+  Question:
+  - where to assign state? In `mount` or `handle_params`?
+    - rule of thumb: if we have state that can change as we navigate, based on
+    URL query params, then we want to put that in `handle_params()`
+    - servers is assigned in `mount` (remains static even when the query params change)
+    - selected_server is assigned in `handle_params`
+  """
   def mount(_params, _session, socket) do
     servers = Servers.list_servers()
 
@@ -15,6 +23,24 @@ defmodule LiveViewStudioWeb.ServersLive do
     {:ok, socket}
   end
 
+  @doc """
+  Always invoked after:
+  1. mount
+  2. after live_patch is used
+  """
+  def handle_params(%{"id" => id}, _url, socket) do
+    server =
+      id
+      |> String.to_integer()
+      |> Servers.get_server!()
+
+    {:noreply, assign(socket, page_title: "What's up #{server.name}?", selected_server: server)}
+  end
+
+  def handle_params(_, _uri, socket) do
+    {:noreply, socket}
+  end
+
   def render(assigns) do
     ~L"""
     <h1>Servers</h1>
@@ -22,11 +48,13 @@ defmodule LiveViewStudioWeb.ServersLive do
       <div class="sidebar">
         <nav>
           <%= for server <- @servers do %>
-            <a href="#"
-               class="<%= if server == @selected_server, do: 'active' %>">
-              <img src="/images/server.svg">
-              <%= server.name %>
-            </a>
+            <div>
+              <!-- live_patch updates the URL using push-state and also updates the DOM -->
+              <%= live_patch(
+                link_body(server),
+                to: Routes.live_path(@socket, __MODULE__, id: server.id),
+                class: (if server == @selected_server, do: "active")) %>
+            </div>
           <% end %>
         </nav>
       </div>
@@ -70,6 +98,15 @@ defmodule LiveViewStudioWeb.ServersLive do
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp link_body(server) do
+    assigns = %{name: server.name}
+
+    ~L"""
+    <img src="/images/server.svg" alt="server">
+    <%= @name %>
     """
   end
 end
