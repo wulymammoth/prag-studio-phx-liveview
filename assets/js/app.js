@@ -17,11 +17,37 @@ import { Socket } from "phoenix";
 import NProgress from "nprogress";
 import { LiveSocket } from "phoenix_live_view";
 
+let Hooks = {
+  InfiniteScroll: {
+    mounted() {
+      console.log("Footer added to the DOM!", this.el);
+      this.observer = new IntersectionObserver(entries => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          console.log("Footer is visible");
+          this.pushEvent("load-more");
+        }
+      }).observe(this.el);
+    },
+
+    updated() {
+      // suppose we need to know the specific page number in our liveview (from data attr in the DOM)
+      console.log("UPDATED - we're now on page:", this.el.dataset.pageNumber);
+    },
+
+    destroyed() {
+      //this.observer.unobserve(this.el);
+      this.observer.disconnect();
+    }
+  }
+};
+
 let csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
 let liveSocket = new LiveSocket("/live", Socket, {
+  hooks: Hooks,
   params: { _csrf_token: csrfToken },
 });
 
